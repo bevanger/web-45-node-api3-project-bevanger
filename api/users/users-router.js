@@ -9,7 +9,6 @@ const Posts = require('../posts/posts-model');
 const router = express.Router();
 
 router.get('/', (req, res, next) => {
-  // RETURN AN ARRAY WITH ALL THE USERS
   Users.get()
     .then(users => {
       res.status(200).json(users)
@@ -21,15 +20,24 @@ router.get('/:id', validateUserId, (req, res, next) => {
   res.status(200).json(req.user)
 });
 
-router.post('/', (req, res) => {
-  // RETURN THE NEWLY CREATED USER OBJECT
-  // this needs a middleware to check that the request body is valid
+router.post('/', validateUser, (req, res, next) => {
+  Users.insert(req.body)
+    .then(user => {
+      console.log(user)
+      res.status(201).json(user)
+    })
+    .catch(next)
 });
 
-router.put('/:id', (req, res) => {
-  // RETURN THE FRESHLY UPDATED USER OBJECT
-  // this needs a middleware to verify user id
-  // and another middleware to check that the request body is valid
+router.put('/:id', validateUserId, validateUser, (req, res, next) => {
+  const { id } = req.params;
+  const changes = req.body;
+
+  Users.update(id, changes)
+    .then(updatedUser => {
+      res.status(200).json(updatedUser)
+    })
+    .catch(next)
 });
 
 router.delete('/:id', validateUserId, (req, res, next) => {
@@ -45,8 +53,7 @@ router.delete('/:id', validateUserId, (req, res, next) => {
 });
 
 router.get('/:id/posts', validateUserId, (req, res, next) => {
-  // RETURN THE ARRAY OF USER POSTS
-  const { id } = (req.params)
+  const { id } = (req.params);
 
   Users.getUserPosts(id)
   .then(posts => {
@@ -56,10 +63,22 @@ router.get('/:id/posts', validateUserId, (req, res, next) => {
 
 });
 
-router.post('/:id/posts', (req, res) => {
+router.post('/:id/posts', validateUserId, validatePost, (req, res, next) => {
   // RETURN THE NEWLY CREATED USER POST
   // this needs a middleware to verify user id
   // and another middleware to check that the request body is valid
+  const { text } = (req.body);
+  const { id } = (req.params);
+  const newUser = {
+    text: text,
+    user_id: id
+  }
+
+  Posts.insert(newUser)
+    .then(post => {
+      res.status(201).json(post)
+    })
+    .catch(next)
 });
 
 router.use((err, req, res, next) => {
