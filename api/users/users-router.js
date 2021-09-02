@@ -1,17 +1,26 @@
 const express = require('express');
 
+const { validateUserId, validateUser, validatePost } = require('../middleware/middleware');
+const Users = require('./users-model');
+const Posts = require('../posts/posts-model');
 // You will need `users-model.js` and `posts-model.js` both
 // The middleware functions also need to be required
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', (req, res, next) => {
   // RETURN AN ARRAY WITH ALL THE USERS
+  Users.get()
+    .then(users => {
+      res.status(200).json(users)
+    })
+    .catch(next)
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', validateUserId, (req, res, next) => {
   // RETURN THE USER OBJECT
   // this needs a middleware to verify user id
+  res.status(200).json(req.user)
 });
 
 router.post('/', (req, res) => {
@@ -25,9 +34,18 @@ router.put('/:id', (req, res) => {
   // and another middleware to check that the request body is valid
 });
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', validateUserId, (req, res, next) => {
   // RETURN THE FRESHLY DELETED USER OBJECT
   // this needs a middleware to verify user id
+  Users.remove(req.params.id)
+    .then((success) => {
+      if(success) {
+        res.status(200).json(req.user)
+      } else {
+        res.status(404).json({ message: 'The user with that specified ID does not exist'})
+      }
+    })
+    .catch(next)
 });
 
 router.get('/:id/posts', (req, res) => {
@@ -41,4 +59,12 @@ router.post('/:id/posts', (req, res) => {
   // and another middleware to check that the request body is valid
 });
 
+router.use((err, req, res, next) => {
+  res.status(err.status || 500).json({
+    message: err.message,
+    customMessage: 'Something bad inside the users router'
+  })
+})
+
 // do not forget to export the router
+module.exports = router;
